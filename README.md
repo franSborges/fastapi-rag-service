@@ -1,1 +1,1 @@
-# fastapi-rag-service
+# FastAPI RAG Service
