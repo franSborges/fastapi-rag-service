@@ -1,8 +1,11 @@
 from fastapi import APIRouter
-from typing import List 
 from pydantic import BaseModel
+from typing import List, Dict, Tuple
+import re 
+from collections import Counter
 
 router = APIRouter(prefix="/api/v1")
+
 
 class IngestRequest(BaseModel):
     text: str
@@ -17,6 +20,44 @@ class QAResponse(BaseModel):
     mock_mode: bool = True
 
 mock_documents = []
+
+def calculate_chunk_relevance(chunk: str, question_words: List[str], doc_title: str) -> Dict:
+    
+ chunk_lower = chunk.lower() 
+ title_lower = doc_title.lower()  
+ 
+ words_found = []
+ for word in question_words:
+     word_clean = re.sub(r'[^\w]', '', word.lower())
+     if len(word_clean) > 2:
+         if word_clean in chunk_lower:
+             words_found.append(word_clean)
+             
+ word_math_score = len(words_found)
+ word_density = len(words_found) / len(question_words) if question_words else 0
+ 
+  
+ title_bonus = 0
+ for word in words_found:
+     if word in title_lower:
+         title_bonus += 0.5
+         
+         
+ length_penalty = 0 if len(chunk.strip()) > 10 else -1
+ 
+ final_score = word_math_score + word_density + title_bonus + length_penalty
+ 
+ return {
+     'chunk': chunk,
+     'doc_title': doc_title,
+     'score': final_score,
+     'words_found': words_found,
+     'word_count': word_math_score,
+     'density': word_density
+ }
+  
+
+
 
 @router.get("/health")
 def health():
